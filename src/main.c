@@ -31,6 +31,7 @@ typedef struct
     SDL_Surface *interact_image;
     bool is_interactive;
     char dir_need_to_face;
+    bool is_end_of_map;
 } MapTile;
 
 static const int width = 240;
@@ -136,6 +137,102 @@ void shutdown(void)
     SDL_Quit();
 }
 
+bool check_true_or_false(char* ptr)
+{
+    if(strcmp(ptr,"true") == 0 )
+        return true;
+    else
+        return false;
+}
+
+void read_line_to_map(char *s, int x, int y)
+{
+    char delim[] = " ";
+
+    char *ptr = strtok(s, delim);
+    int counter = 0;
+    while(ptr != NULL)
+    {
+        switch(counter){
+            case 0:
+                map[x][y].N = SDL_LoadBMP(ptr);
+                break;
+            case 1:
+                map[x][y].E = SDL_LoadBMP(ptr);
+                break;
+            case 2:
+                map[x][y].S = SDL_LoadBMP(ptr);
+                break;
+            case 3:
+                map[x][y].W = SDL_LoadBMP(ptr);
+                break;
+            case 4:
+                map[x][y].passable_from_N = check_true_or_false(ptr);
+                break;
+            case 5:
+                map[x][y].passable_from_E = check_true_or_false(ptr);
+                break;
+            case 6:
+                map[x][y].passable_from_S = check_true_or_false(ptr);
+                break;
+            case 7:
+                map[x][y].passable_from_W = check_true_or_false(ptr);
+                break;
+            case 8:
+                map[x][y].is_interactive = check_true_or_false(ptr);
+                break;
+            case 9:
+                if(strcmp(ptr,"NULL") == 0){
+                    map[x][y].interact_image = NULL;
+                }else{
+                    map[x][y].interact_image = SDL_LoadBMP(ptr);
+                }
+                break;
+            case 10:
+                if(strcmp(ptr, "(char)0\n") == 0){
+                    map[x][y].dir_need_to_face = (char)0;
+                }else{
+                    map[x][y].dir_need_to_face = *ptr;
+                }
+                break;
+            case 11:
+                map[x][y].is_end_of_map = check_true_or_false(ptr);
+            default:
+                break;
+        }
+        ptr = strtok(NULL, delim);
+        counter++;
+    }
+
+}
+
+void load_map_file(char *fname)
+{
+    FILE* file = fopen(fname, "r");
+    if(file == NULL)
+    {
+        abort_game("Failed to load map .txt file");
+    }
+    char line[256];
+    int i, j;
+    for(i = 0; i < columns; i++)
+    {
+        for(j = 0; j < rows; j++)
+        {
+            fgets(line, sizeof(line), file);
+            read_line_to_map(line, i, j);
+        }
+    }
+    fclose(file);
+}
+
+void init_map(char *mapname)
+{
+    columns = LEN(map);
+    rows = LEN(map[0]);
+    load_map_file(mapname);
+}
+
 void get_user_input(SDL_Event event)
 {
     if(event.type == SDL_KEYDOWN)
@@ -146,6 +243,14 @@ void get_user_input(SDL_Event event)
                 if (first)
                 {
                     break;
+                }
+                else if(map[player_get_position_x(p)][player_get_position_y(p)].is_end_of_map)
+                {
+                    init_map("map-2.txt");
+                    player_set_position(p, 3, 3);
+                    player_set_direction(p, 'N');
+                    key[KEY_UP] = true;
+                    redraw = true;
                 }
                 else
                 {
@@ -161,13 +266,13 @@ void get_user_input(SDL_Event event)
                         key[KEY_UP] = true;
                         redraw = true;
                     }
-                    else if(player_get_direction_facing(p) == 'E' && map[player_get_position_x(p)][player_get_position_y(p) + 1].passable_from_E && (player_get_position_y(p) + 1) < rows)
+                    else if(player_get_direction_facing(p) == 'E' && map[player_get_position_x(p)][player_get_position_y(p) + 1].passable_from_W && (player_get_position_y(p) + 1) < rows)
                     {
                         player_set_position(p, p->x, p->y+1);
                         key[KEY_UP] = true;
                         redraw = true;
                     }
-                    else if(player_get_direction_facing(p) == 'W' && map[player_get_position_x(p)][player_get_position_y(p) - 1].passable_from_W && (player_get_position_y(p) - 1) >= 0)
+                    else if(player_get_direction_facing(p) == 'W' && map[player_get_position_x(p)][player_get_position_y(p) - 1].passable_from_E && (player_get_position_y(p) - 1) >= 0)
                     {
                         player_set_position(p, p->x, p->y-1);
                         key[KEY_UP] = true;
@@ -353,100 +458,6 @@ void init_player(void)
     p = player_constructor();
 }
 
-bool check_true_or_false(char* ptr)
-{
-    if(strcmp(ptr,"true") == 0 )
-        return true;
-    else
-        return false;
-}
-
-void read_line_to_map(char *s, int x, int y)
-{
-    char delim[] = " ";
-
-    char *ptr = strtok(s, delim);
-    int counter = 0;
-    while(ptr != NULL)
-    {
-        switch(counter){
-            case 0:
-                map[x][y].N = SDL_LoadBMP(ptr);
-                break;
-            case 1:
-                map[x][y].E = SDL_LoadBMP(ptr);
-                break;
-            case 2:
-                map[x][y].S = SDL_LoadBMP(ptr);
-                break;
-            case 3:
-                map[x][y].W = SDL_LoadBMP(ptr);
-                break;
-            case 4:
-                map[x][y].passable_from_N = check_true_or_false(ptr);
-                break;
-            case 5:
-                map[x][y].passable_from_E = check_true_or_false(ptr);
-                break;
-            case 6:
-                map[x][y].passable_from_S = check_true_or_false(ptr);
-                break;
-            case 7:
-                map[x][y].passable_from_W = check_true_or_false(ptr);
-                break;
-            case 8:
-                map[x][y].is_interactive = check_true_or_false(ptr);
-                break;
-            case 9:
-                if(strcmp(ptr,"NULL") == 0){
-                    map[x][y].interact_image = NULL;
-                }else{
-                    map[x][y].interact_image = SDL_LoadBMP(ptr);
-                }
-                break;
-            case 10:
-                if(strcmp(ptr, "(char)0\n") == 0){
-                    map[x][y].dir_need_to_face = (char)0;
-                }else{
-                    map[x][y].dir_need_to_face = *ptr;
-                }
-                break;
-            default:
-                break;
-        }
-        ptr = strtok(NULL, delim);
-        counter++;
-    }
-
-}
-
-void load_map_file(char *fname)
-{
-    FILE* file = fopen(fname, "r");
-    if(file == NULL)
-    {
-        abort_game("Failed to load map .txt file");
-    }
-    char line[256];
-    int i, j;
-    for(i = 0; i < columns; i++)
-    {
-        for(j = 0; j < rows; j++)
-        {
-            fgets(line, sizeof(line), file);
-            read_line_to_map(line, i, j);
-        }
-    }
-    fclose(file);
-}
-
-void init_map(void)
-{
-    columns = LEN(map);
-    rows = LEN(map[0]);
-    load_map_file("map-beta.txt");
-}
-
 void init(void)
 {
     SDL_Init(SDL_INIT_VIDEO);
@@ -482,7 +493,7 @@ void init(void)
 int main(int argc, char ** argv)
 {
     init();
-    init_map();
+    init_map("map-beta.txt");
     init_player();
     game_loop();
     shutdown();
