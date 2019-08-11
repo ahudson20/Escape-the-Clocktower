@@ -241,7 +241,6 @@ void get_user_input(SDL_Event event)
                 break;
 
             case SDLK_SPACE:
-                printf("Space pressed!\n");
                 key[KEY_SPACE] = true;
                 redraw = true;
                 break;
@@ -329,14 +328,14 @@ void game_loop(void)
         SDL_WaitEvent(&event);
         if (event.type == SDL_QUIT)
         {
-            printf("Exit Pressed\n");
+            printf("Exit pressed, game exiting\n");
             done = true;
         }
         else if (event.type == SDL_KEYDOWN)
         {
             if (event.key.keysym.sym == SDLK_ESCAPE)
             {
-                printf("Escaped Pressed\n");
+                printf("Escaped pressed, game exiting\n");
                 done = true;
             }
             get_user_input(event);
