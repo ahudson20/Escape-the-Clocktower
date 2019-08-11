@@ -105,6 +105,15 @@ void player_destruct (player* this)
 
 player* p;
 
+
+bool check_true_or_false(char* ptr)
+{
+    if(strcmp(ptr,"true") == 0 )
+        return true;
+    else
+        return false;
+}
+
 void read_line_to_map(char *s, int x, int y)
 {
     char delim[] = " ";
@@ -113,61 +122,50 @@ void read_line_to_map(char *s, int x, int y)
     int counter = 0;
     while(ptr != NULL)
     {
-        if(counter == 0){
-            map[x][y].N = SDL_LoadBMP(ptr);
-        }else if(counter == 1){
-            map[x][y].E = SDL_LoadBMP(ptr);
-        }else if(counter == 2){
-            map[x][y].S = SDL_LoadBMP(ptr);
-        }else if(counter == 3){
-            map[x][y].W = SDL_LoadBMP(ptr);
-        }else if(counter == 4){
-            bool b;
-            if(strcmp(ptr,"true") == 0 )
-                b = true;
-            else
-                b = false;
-            map[x][y].passable_from_N = b;
-        }else if(counter == 5){
-            bool b;
-            if(strcmp(ptr,"true") == 0 )
-                b = true;
-            else
-                b = false;
-            map[x][y].passable_from_E = b;
-        }else if(counter == 6){
-            bool b;
-            if(strcmp(ptr,"true") == 0 )
-                b = true;
-            else
-                b = false;
-            map[x][y].passable_from_S = b;
-        }else if(counter == 7){
-            bool b;
-            if(strcmp(ptr,"true") == 0 )
-                b = true;
-            else
-                b = false;
-            map[x][y].passable_from_W = b;
-        }else if(counter == 8){
-            bool b;
-            if(strcmp(ptr,"true") == 0 )
-                b = true;
-            else
-                b = false;
-            map[x][y].is_interactive = b;
-        }else if(counter == 9){
-            if(strcmp(ptr,"NULL") == 0){
-                map[x][y].interact_image = NULL;
-            }else{
-                map[x][y].interact_image = SDL_LoadBMP(ptr);
-            }
-        }else{
-            if(strcmp(ptr, "(char)0\n") == 0){
-                map[x][y].dir_need_to_face = (char)0;
-            }else{
-                map[x][y].dir_need_to_face = *ptr;
-            }
+        switch(counter){
+            case 0:
+                map[x][y].N = SDL_LoadBMP(ptr);
+                break;
+            case 1:
+                map[x][y].E = SDL_LoadBMP(ptr);
+                break;
+            case 2:
+                map[x][y].S = SDL_LoadBMP(ptr);
+                break;
+            case 3:
+                map[x][y].W = SDL_LoadBMP(ptr);
+                break;
+            case 4:
+                map[x][y].passable_from_N = check_true_or_false(ptr);
+                break;
+            case 5:
+                map[x][y].passable_from_E = check_true_or_false(ptr);
+                break;
+            case 6:
+                map[x][y].passable_from_S = check_true_or_false(ptr);
+                break;
+            case 7:
+                map[x][y].passable_from_W = check_true_or_false(ptr);
+                break;
+            case 8:
+                map[x][y].is_interactive = check_true_or_false(ptr);
+                break;
+            case 9:
+                if(strcmp(ptr,"NULL") == 0){
+                    map[x][y].interact_image = NULL;
+                }else{
+                    map[x][y].interact_image = SDL_LoadBMP(ptr);
+                }
+                break;
+            case 10:
+                if(strcmp(ptr, "(char)0\n") == 0){
+                    map[x][y].dir_need_to_face = (char)0;
+                }else{
+                    map[x][y].dir_need_to_face = *ptr;
+                }
+                break;
+            default:
+                break;
         }
         ptr = strtok(NULL, delim);
         counter++;
