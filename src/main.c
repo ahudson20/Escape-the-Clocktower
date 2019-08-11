@@ -105,109 +105,35 @@ void player_destruct (player* this)
 
 player* p;
 
-
-bool check_true_or_false(char* ptr)
+void shutdown(void)
 {
-    if(strcmp(ptr,"true") == 0 )
-        return true;
-    else
-        return false;
-}
 
-void read_line_to_map(char *s, int x, int y)
-{
-    char delim[] = " ";
-
-    char *ptr = strtok(s, delim);
-    int counter = 0;
-    while(ptr != NULL)
+    if(p)
     {
-        switch(counter){
-            case 0:
-                map[x][y].N = SDL_LoadBMP(ptr);
-                break;
-            case 1:
-                map[x][y].E = SDL_LoadBMP(ptr);
-                break;
-            case 2:
-                map[x][y].S = SDL_LoadBMP(ptr);
-                break;
-            case 3:
-                map[x][y].W = SDL_LoadBMP(ptr);
-                break;
-            case 4:
-                map[x][y].passable_from_N = check_true_or_false(ptr);
-                break;
-            case 5:
-                map[x][y].passable_from_E = check_true_or_false(ptr);
-                break;
-            case 6:
-                map[x][y].passable_from_S = check_true_or_false(ptr);
-                break;
-            case 7:
-                map[x][y].passable_from_W = check_true_or_false(ptr);
-                break;
-            case 8:
-                map[x][y].is_interactive = check_true_or_false(ptr);
-                break;
-            case 9:
-                if(strcmp(ptr,"NULL") == 0){
-                    map[x][y].interact_image = NULL;
-                }else{
-                    map[x][y].interact_image = SDL_LoadBMP(ptr);
-                }
-                break;
-            case 10:
-                if(strcmp(ptr, "(char)0\n") == 0){
-                    map[x][y].dir_need_to_face = (char)0;
-                }else{
-                    map[x][y].dir_need_to_face = *ptr;
-                }
-                break;
-            default:
-                break;
-        }
-        ptr = strtok(NULL, delim);
-        counter++;
+        player_destruct(p);
     }
 
-}
-
-void load_map_file(char *fname)
-{
-    FILE* file = fopen(fname, "r");
-    if(file == NULL)
+    if(texture)
     {
-        abort_game("Failed to load map .txt file");
+        SDL_DestroyTexture(texture);
     }
-    char line[256];
-    int i, j;
-    for(i = 0; i < columns; i++)
+
+    if(loadImage)
     {
-        for(j = 0; j < rows; j++)
-        {
-            fgets(line, sizeof(line), file);
-            read_line_to_map(line, i, j);
-        }
+        SDL_FreeSurface(loadImage);
     }
-    fclose(file);
-}
 
-void init_map(void)
-{
-    columns = LEN(map);
-    rows = LEN(map[0]);
-    load_map_file("map-beta.txt");
-}
+    if(renderer)
+    {
+        SDL_DestroyRenderer(renderer);
+    }
 
-void print_pos(player* p){
-    printf("%d, %d\n", p->x, p->y);
-    printf("%c\n", p->direction_facing);
-}
+    if(window)
+    {
+        SDL_DestroyWindow(window);
+    }
 
-void init_player(void)
-{
-    p = player_constructor();
+    SDL_Quit();
 }
 
 void get_user_input(SDL_Event event)
@@ -225,36 +151,25 @@ void get_user_input(SDL_Event event)
                 {
                     if (player_get_direction_facing(p) == 'N' && map[player_get_position_x(p) + 1][player_get_position_y(p)].passable_from_S && (player_get_position_x(p) + 1) < columns)
                     {
-                        print_pos(p);
                         player_set_position(p, p->x + 1, p->y);
-                        print_pos(p);
-                        printf("-------\n");
                         key[KEY_UP] = true;
                         redraw = true;
                     }
                     else if (player_get_direction_facing(p) == 'S' && map[player_get_position_x(p) - 1][player_get_position_y(p)].passable_from_N && (player_get_position_x(p) - 1 ) >= 0)
                     {
-                        print_pos(p);
                         player_set_position(p, p->x - 1, p->y);
-                        print_pos(p);
-                        printf("-------\n");
                         key[KEY_UP] = true;
                         redraw = true;
                     }
                     else if(player_get_direction_facing(p) == 'E' && map[player_get_position_x(p)][player_get_position_y(p) + 1].passable_from_E && (player_get_position_y(p) + 1) < rows)
                     {
-                        print_pos(p);
                         player_set_position(p, p->x, p->y+1);
-                        print_pos(p);
-                        printf("-------\n");
                         key[KEY_UP] = true;
                         redraw = true;
                     }
-                    else if(player_get_direction_facing(p) == 'W' && map[player_get_position_x(p)][player_get_position_y(p) - 1].passable_from_W && (player_get_position_y(p) - 1) >= 0){
-                        print_pos(p);
+                    else if(player_get_direction_facing(p) == 'W' && map[player_get_position_x(p)][player_get_position_y(p) - 1].passable_from_W && (player_get_position_y(p) - 1) >= 0)
+                    {
                         player_set_position(p, p->x, p->y-1);
-                        print_pos(p);
-                        printf("-------\n");
                         key[KEY_UP] = true;
                         redraw = true;
                     }
@@ -405,35 +320,132 @@ void update_graphics()
     SDL_RenderPresent(renderer);
 }
 
-void shutdown(void)
+void game_loop(void)
 {
-
-    if(p)
+    redraw = true;
+    while (!done)
     {
-        player_destruct(p);
+        SDL_Event event;
+        SDL_WaitEvent(&event);
+        if (event.type == SDL_QUIT)
+        {
+            printf("Exit Pressed\n");
+            done = true;
+        }
+        else if (event.type == SDL_KEYDOWN)
+        {
+            if (event.key.keysym.sym == SDLK_ESCAPE)
+            {
+                printf("Escaped Pressed\n");
+                done = true;
+            }
+            get_user_input(event);
+        }
+        if (redraw)
+        {
+            redraw = false;
+            update_graphics();
+        }
+    }
+}
+
+void init_player(void)
+{
+    p = player_constructor();
+}
+
+bool check_true_or_false(char* ptr)
+{
+    if(strcmp(ptr,"true") == 0 )
+        return true;
+    else
+        return false;
+}
+
+void read_line_to_map(char *s, int x, int y)
+{
+    char delim[] = " ";
+
+    char *ptr = strtok(s, delim);
+    int counter = 0;
+    while(ptr != NULL)
+    {
+        switch(counter){
+            case 0:
+                map[x][y].N = SDL_LoadBMP(ptr);
+                break;
+            case 1:
+                map[x][y].E = SDL_LoadBMP(ptr);
+                break;
+            case 2:
+                map[x][y].S = SDL_LoadBMP(ptr);
+                break;
+            case 3:
+                map[x][y].W = SDL_LoadBMP(ptr);
+                break;
+            case 4:
+                map[x][y].passable_from_N = check_true_or_false(ptr);
+                break;
+            case 5:
+                map[x][y].passable_from_E = check_true_or_false(ptr);
+                break;
+            case 6:
+                map[x][y].passable_from_S = check_true_or_false(ptr);
+                break;
+            case 7:
+                map[x][y].passable_from_W = check_true_or_false(ptr);
+                break;
+            case 8:
+                map[x][y].is_interactive = check_true_or_false(ptr);
+                break;
+            case 9:
+                if(strcmp(ptr,"NULL") == 0){
+                    map[x][y].interact_image = NULL;
+                }else{
+                    map[x][y].interact_image = SDL_LoadBMP(ptr);
+                }
+                break;
+            case 10:
+                if(strcmp(ptr, "(char)0\n") == 0){
+                    map[x][y].dir_need_to_face = (char)0;
+                }else{
+                    map[x][y].dir_need_to_face = *ptr;
+                }
+                break;
+            default:
+                break;
+        }
+        ptr = strtok(NULL, delim);
+        counter++;
     }
 
-    if(texture)
-    {
-        SDL_DestroyTexture(texture);
-    }
+}
 
-    if(loadImage)
+void load_map_file(char *fname)
+{
+    FILE* file = fopen(fname, "r");
+    if(file == NULL)
     {
-        SDL_FreeSurface(loadImage);
+        abort_game("Failed to load map .txt file");
     }
-
-    if(renderer)
+    char line[256];
+    int i, j;
+    for(i = 0; i < columns; i++)
     {
-        SDL_DestroyRenderer(renderer);
+        for(j = 0; j < rows; j++)
+        {
+            fgets(line, sizeof(line), file);
+            read_line_to_map(line, i, j);
+        }
     }
+    fclose(file);
+}
 
-    if(window)
-    {
-        SDL_DestroyWindow(window);
-    }
-
-    SDL_Quit();
+void init_map(void)
+{
+    columns = LEN(map);
+    rows = LEN(map[0]);
+    load_map_file("map-beta.txt");
 }
 
 void init(void)
@@ -467,37 +479,6 @@ void init(void)
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 }
-
-void game_loop(void)
-{
-    redraw = true;
-    while (!done)
-    {
-        SDL_Event event;
-        SDL_WaitEvent(&event);
-        if (event.type == SDL_QUIT)
-        {
-            printf("Exit Pressed\n");
-            done = true;
-        }
-        else if (event.type == SDL_KEYDOWN)
-        {
-            if (event.key.keysym.sym == SDLK_ESCAPE)
-            {
-                printf("Escaped Pressed\n");
-                done = true;
-            }
-            get_user_input(event);
-        }
-        if (redraw)
-        {
-            redraw = false;
-            update_graphics();
-        }
-    }
-}
-
-
 
 int main(int argc, char ** argv)
 {
